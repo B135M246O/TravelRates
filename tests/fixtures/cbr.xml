@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValCurs Date="15.07.2024" name="Foreign Currency Market">
+  <Valute ID="R01235"><NumCode>840</NumCode><CharCode>USD</CharCode><Nominal>1</Nominal><Name>Доллар США</Name><Value>87,7427</Value></Valute>
+  <Valute ID="R01820"><NumCode>392</NumCode><CharCode>JPY</CharCode><Nominal>100</Nominal><Name>Японских иен</Name><Value>55,0000</Value></Valute>
+</ValCurs>

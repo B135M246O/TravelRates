@@ -133,3 +133,7 @@ random.py
 file_test.py
 .vscode/launch.json
 file_test2.py
+
+*.db
+*.db-journal
+requirements-local.txt

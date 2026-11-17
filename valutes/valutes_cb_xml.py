@@ -1,26 +1,16 @@
-import json
 import logging
 import re
-import sys
 from datetime import datetime as dt
 from http import HTTPStatus
 
 import requests
 import xmltodict
 
-from valutes.dicts import VALUTE_LIST
 from valutes.exceptions import (EmptyListException, InvalidApiExc, InvalidDate,
                                 InvalidJsonExc, InvalidResponseExc,
                                 InvalidType, InvalidValuteExc, NotValuteExc)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 REG = r'\b[A-Za-z]{3}\b'
 CB_URL = 'https://cbr.ru/scripts/XML_daily.asp'
@@ -29,10 +19,13 @@ REG_DATE = r'\b(0[1-9]|[12][0-9]|3[0-1])[.](0[1-9]|1[0-2])[.](19|20)\d\d\b'
 
 def date_args(date):
     """Перевод даты из context.args в корректный формат."""
-    if re.match(REG_DATE, date) is None:
+    if re.fullmatch(REG_DATE, date) is None:
         raise InvalidDate(
             'Дата должна быть в формате dd.mm.yyyy')
-    return dt.strptime(date, '%d.%m.%Y')
+    try:
+        return dt.strptime(date, '%d.%m.%Y')
+    except ValueError as error:
+        raise InvalidDate('Такой календарной даты нет') from error
 
 
 def url_for_date(dt_time):
@@ -47,26 +40,30 @@ def url_for_date(dt_time):
 def make_json(data):
     """Формирование JSON."""
     data = data.get('ValCurs')
-    data = json.dumps(data)
-    data = json.loads(data)
+    if not isinstance(data, dict) or not data.get('Valute'):
+        raise InvalidApiExc('В ответе ЦБ нет списка валют')
     json_all = {}
     json_all['@Date'] = data.get('@Date')
     json_valutes = {}
-    for valute in data.get('Valute'):
+    entries = data['Valute']
+    if isinstance(entries, dict):
+        entries = [entries]
+    for valute in entries:
         json_valutes[valute.get('CharCode')] = valute
     json_all['Valute'] = json_valutes
     return json_all
 
 
-def get_api_answer(date=dt.now()):
+def get_api_answer(date=None):
     """Проверка успешности запроса к API."""
+    date = date or dt.now()
     min_date = dt.strptime('01.07.1992', '%d.%m.%Y')
     if date < min_date:
         raise InvalidDate('Начало отсчета 01.07.1992')
     if date > dt.now():
         date = dt.now()
     try:
-        response = requests.get(url_for_date(date))
+        response = requests.get(url_for_date(date), timeout=15)
     except Exception as error:
         raise InvalidApiExc(f'Ошибка ответа API: {error}')
     status = response.status_code
@@ -82,14 +79,14 @@ def get_api_answer(date=dt.now()):
 
 def check_data(data, context):
     """Проверка корректности данных."""
-    if 'Valute' and '@Date' not in data:
+    if not isinstance(data, dict) or not {'Valute', '@Date'} <= data.keys():
         raise InvalidApiExc('Некорректный ответ API - нет Valute or Date')
     if not context:
         raise EmptyListException('Не указана валюта')
     charcode = context
-    if re.match(REG, charcode) is None:
+    if re.fullmatch(REG, charcode) is None:
         raise NotValuteExc('Не соответствует Charcode')
-    if charcode not in VALUTE_LIST:
+    if charcode not in data['Valute']:
         raise InvalidValuteExc(
             f'Валюта {charcode} некорректна или не поддерживается')
     try:

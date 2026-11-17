@@ -1,0 +1,24 @@
+[
+  {
+    "source": "CBR",
+    "status": "OK",
+    "date": "13.07.2024",
+    "count": 43,
+    "USD": 87.743
+  },
+  {
+    "source": "MOEX CNY LAST",
+    "status": "OK",
+    "value": "12.402"
+  },
+  {
+    "source": "TheCatAPI",
+    "status": 200,
+    "has_image_url": true
+  },
+  {
+    "source": "TheDogAPI",
+    "status": 200,
+    "has_image_url": true
+  }
+]

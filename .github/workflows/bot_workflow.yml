@@ -1,80 +1,13 @@
-name: bot_workflow
-
-on: push
-
+name: TravelRates checks
+on: [push, pull_request]
 jobs:
-  tests:
-    name: Testing
+  test:
     runs-on: ubuntu-latest
     steps:
-    - name: Check out the repo
-      uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Check flake8
-      run: |
-        python -m flake8
-
-  build_and_push:
-    name: Push Docker image to DockerHub
-    runs-on: ubuntu-latest
-    needs: tests
-    steps:
-    - name: Check out the repo
-      uses: actions/checkout@v2
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-    - name: Login to Docker
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    - name: Push to DockerHub
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        push: true
-        tags: abbadon666666/a_bot:latest
-
-  deploy:
-    name: Deploy MyServer
-    runs-on: ubuntu-latest
-    needs: build_and_push
-    if:
-      contains(
-        'refs/heads/main',
-        github.ref)
-    steps:
-    - name: executing remote ssh commands to deploy
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          cd bot/infra/
-          sudo docker-compose stop bot
-          echo y|sudo docker-compose rm bot
-          sudo docker rmi abbadon666666/a_bot:latest
-          touch .env
-          echo API_TOKEN=${{ secrets.API_TOKEN }} >> .env
-          echo API_TEST=${{ secrets.API_TEST }} >> .env
-          sudo docker-compose up -d
-
-  send_message:
-    name: Telegram - Send message
-    runs-on: ubuntu-latest
-    needs: deploy
-    steps:
-    - name: send message
-      uses: appleboy/telegram-action@master
-      with:
-        to: ${{ secrets.TELEGRAM_TO }}
-        token: ${{ secrets.TELEGRAM_TOKEN }}
-        message: ${{ github.workflow }} успешно обновлён!
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest
+      - run: python main.py --check

@@ -1,11 +1,6 @@
-FROM python:3.7-slim
-
+FROM python:3.11-slim
 WORKDIR /app
-
-COPY requirements.txt /app
-
-RUN pip3 install -r requirements.txt --no-cache-dir
-
-COPY . /app
-
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 CMD ["python", "main.py"]
